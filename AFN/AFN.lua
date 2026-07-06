@@ -25,6 +25,7 @@ local enabled = false
 local side = "left"
 local lastF1 = false
 local lastF2 = false
+local autoSide = false
 
 local keys = {
     [1] = 0x41, -- A
@@ -71,6 +72,26 @@ local function setKey(lane, down)
     if down then keypress(keys[lane]) else keyrelease(keys[lane]) end
 end
 
+local function isOurHead(cx)
+    local ourMin, theirMin = math.huge, math.huge
+    local ourStart, theirStart = side == "left" and 0 or 4, side == "left" and 4 or 0
+    for i = ourStart, ourStart + 3 do
+        local s = gui:FindFirstChild("Strum"..i)
+        if s then
+            local d = math.abs(cx - (gx(s) + gsx(s) / 2))
+            if d < ourMin then ourMin = d end
+        end
+    end
+    for i = theirStart, theirStart + 3 do
+        local s = gui:FindFirstChild("Strum"..i)
+        if s then
+            local d = math.abs(cx - (gx(s) + gsx(s) / 2))
+            if d < theirMin then theirMin = d end
+        end
+    end
+    return ourMin <= theirMin
+end
+
 local function getStrums()
     if side == "left" then
         return { gui.Strum0, gui.Strum1, gui.Strum2, gui.Strum3 }
@@ -88,6 +109,8 @@ local function isObj(obj)
     if obj.Parent ~= gui then return false end
     if obj.Name:find("Strum") or obj.Name:find("LaneBG") then return false end
     if not isVisible(obj) then return false end
+    local ok, t = pcall(function() return obj.ImageTransparency end)
+    if ok and t and t > 0.5 then return false end
     local w, h = gsx(obj), gsy(obj)
     return w > 8 and h > 8 and w <= 650 and h <= 2400
 end
@@ -225,8 +248,7 @@ local function tapTick(lane, now)
         if now < st.untilTime then return false end
         st.phase = "idle"
         if #q > 0 then
-            table.remove(q, 1); st.phase = "down"; st.untilTime = now + TAP_HOLD_TIME
-            return true
+            table.remove(q, 1); st.phase = "down"; st.untilTime = now + TAP_HOLD_TIME; return true
         end
         return tapTick(lane, now)
     end
@@ -252,17 +274,12 @@ RunService.PostModel:Connect(function()
     hotkeys()
     if not enabled then return end
     local now = tick(); local lanes = getLanes(); cleanUsed()
-    local minCx, maxCx = math.huge, -math.huge
-    for _, info in pairs(lanes) do
-        if info.cx < minCx then minCx = info.cx end
-        if info.cx > maxCx then maxCx = info.cx end
-    end
     local candidates = { [1] = {}, [2] = {}, [3] = {}, [4] = {} }
     for _, obj in ipairs(gui:GetChildren()) do
         if isObj(obj) and isHead(obj) and not usedHeads[obj] then
             local x, y, w = gx(obj), gy(obj), gsx(obj)
             local cx = x + w / 2
-            if cx >= minCx and cx <= maxCx then
+            if isOurHead(cx) then
             local lane = pickLane(cx, lanes)
             if lane then
                 local info = lanes[lane]; local dy = y - info.y
