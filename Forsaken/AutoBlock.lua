@@ -85,7 +85,9 @@ function utils:drawRange()
         local root = self:getRoot(killer)
 
         if root then
-        local range = killer:GetAttribute("Invincible") == 1 and Range2 or Range
+        local enraged = killer:GetAttribute("Invincible") == 1
+        local range = enraged and Range2 or Range
+        local color = enraged and Color3.fromRGB(255, 220, 0) or Color3.fromRGB(0, 255, 80)
         local center = root.Position
         local segs = 24
         local step = 6.2832 / segs
@@ -96,7 +98,7 @@ function utils:drawRange()
             local wpos = Vector3.new(center.X + math.cos(ang) * range, center.Y - 2.5, center.Z + math.sin(ang) * range)
             local p, on = services.Workspace.CurrentCamera:WorldToScreenPoint(wpos)
             if last and on then
-                DrawingImmediate.Line(last, Vector2.new(p.X, p.Y), Color3.fromRGB(0, 255, 80), 0.6, 2, 3)
+                DrawingImmediate.Line(last, Vector2.new(p.X, p.Y), color, 0.6, 2, 3)
             end
             last = Vector2.new(p.X, p.Y)
         end
