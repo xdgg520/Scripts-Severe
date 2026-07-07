@@ -29,6 +29,7 @@ local Range2_Angle_cos = math.cos(math.rad(70))
 vars.enabled    = false
 vars.lastC     = false
 vars.cache      = {}
+vars.enraged    = {}
 
 -- /Utils
 function utils:notify(msg)
@@ -88,8 +89,11 @@ function utils:drawRange()
         local root = self:getRoot(killer)
 
         if root then
-        local range = killer:GetAttribute("Invincible") == 1 and Range2 or Range
-        local color = killer:GetAttribute("Invincible") == 1 and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
+        local isEnraged = killer:GetAttribute("Invincible")
+        local range = isEnraged and Range2 or Range
+        local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
+        local range = isEnraged and Range2 or Range
+        local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
         local center = root.Position
         local segs = 24
         local step = 6.2832 / segs
