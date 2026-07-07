@@ -87,7 +87,7 @@ function utils:drawRange()
         if root then
         local enraged = killer:GetAttribute("Invincible") == 1
         local range = enraged and Range2 or Range
-        local color = enraged and Color3.fromRGB(255, 220, 0) or Color3.fromRGB(0, 255, 80)
+        local color = enraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
         local center = root.Position
         local segs = 24
         local step = 6.2832 / segs
@@ -105,7 +105,7 @@ function utils:drawRange()
 
         local headPos, onScreen = services.Workspace.CurrentCamera:WorldToScreenPoint(center + Vector3.new(0, 5, 0))
         if onScreen and vars.enabled then
-            DrawingImmediate.OutlinedText(Vector2.new(headPos.X, headPos.Y), 16, Color3.fromRGB(255, 50, 50), 1, "targee", true, "GothamBold")
+            DrawingImmediate.OutlinedText(Vector2.new(headPos.X, headPos.Y), 16, Color3.new(1, 0.2, 0.2), 1, "targee", true, "GothamBold")
         end
     end
     end
@@ -153,7 +153,6 @@ services.RunService.PostModel:Connect(function()
                 local myPos  = utils:myRoot()
 
                 if myPos and utils:distSq(myPos.Position, root.Position) <= range * range then
-                    if killer:GetAttribute("Invincible") ~= 1 or utils:islookme(root) then
                         blocked = true
                         break
         end
