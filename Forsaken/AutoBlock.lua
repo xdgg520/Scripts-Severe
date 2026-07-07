@@ -160,7 +160,6 @@ services.RunService.PostModel:Connect(function()
     end
     end
     end
-    end
 
     if blocked then
         if Delay > 0 then
