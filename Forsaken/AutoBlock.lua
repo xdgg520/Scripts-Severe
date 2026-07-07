@@ -29,7 +29,6 @@ local Range2_Angle_cos = math.cos(math.rad(70))
 vars.enabled    = false
 vars.lastC     = false
 vars.cache      = {}
-vars.enraged    = {}
 
 -- /Utils
 function utils:notify(msg)
@@ -83,15 +82,11 @@ function utils:islookme(killerRoot)
 end
 
 function utils:drawRange()
-    if not insts.killers then return end
-
     for _, killer in ipairs(insts.killers:GetChildren()) do
         local root = self:getRoot(killer)
 
         if root then
         local isEnraged = killer:GetAttribute("Invincible")
-        local range = isEnraged and Range2 or Range
-        local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
         local range = isEnraged and Range2 or Range
         local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
         local center = root.Position
@@ -119,11 +114,6 @@ end
 
 -- /Connections
 services.RunService.PostModel:Connect(function()
-
-    if not insts.killers then
-        utils:notify("killers path error")
-        return
-    end
 
     local cDown = false
     for _, key in getpressedkeys() do if key == ToggleKey then cDown = true; break end end
