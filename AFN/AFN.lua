@@ -25,7 +25,6 @@ local enabled = false
 local side = "left"
 local lastF1 = false
 local lastF2 = false
-local autoSide = false
 
 local keys = {
     [1] = 0x41, -- A
