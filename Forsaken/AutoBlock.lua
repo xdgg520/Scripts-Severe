@@ -37,7 +37,6 @@ end
 
 function utils:getRoot(model)
     if not model then return nil end
-
     return model:FindFirstChild("HumanoidRootPart")
         or model:FindFirstChild("RootPart")
         or model:FindFirstChild("Torso")
@@ -63,19 +62,23 @@ function utils:getAttr(model, name)
     return 0
 end
 
-function utils:islookme(killerRoot)
-    local myPos = self:myRoot()
-    if not myPos or not killerRoot then return false end
-
-    local toMe = (myPos.Position - killerRoot.Position) * Vector3.new(1, 0, 1)
-    if toMe.Magnitude < 0.1 then return true end
-
-    return killerRoot.CFrame.LookVector:Dot(toMe.Unit) >= Range2_Angle_cos
-end
-
 function utils:tap(key)
     keypress(key)
     keyrelease(key)
+end
+
+function utils:islookme(killerRoot)
+    local myPos = self:myRoot()
+    if not myPos or not killerRoot then return false end
+    local toMe = (myPos.Position - killerRoot.Position) * Vector3.new(1, 0, 1)
+    if toMe.Magnitude < 0.1 then return true end
+    if killerRoot.CFrame.LookVector:Dot(toMe.Unit) >= Range2_Angle_cos then return true end
+    local vel = killerRoot.AssemblyLinearVelocity or killerRoot.Velocity
+    if vel then
+        local flat = Vector3.new(vel.X, 0, vel.Z)
+        if flat.Magnitude >= 0.1 and flat.Unit:Dot(toMe.Unit) >= Range2_Angle_cos then return true end
+    end
+    return false
 end
 
 function utils:drawRange()
@@ -85,9 +88,8 @@ function utils:drawRange()
         local root = self:getRoot(killer)
 
         if root then
-        local enraged = killer:GetAttribute("Invincible") == 1
-        local range = enraged and Range2 or Range
-        local color = enraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
+        local range = killer:GetAttribute("Invincible") == 1 and Range2 or Range
+        local color = killer:GetAttribute("Invincible") == 1 and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
         local center = root.Position
         local segs = 24
         local step = 6.2832 / segs
@@ -137,28 +139,34 @@ services.RunService.PostModel:Connect(function()
 
     for _, killer in ipairs(insts.killers:GetChildren()) do
         local root = utils:getRoot(killer)
+        if not root then break end
 
-        if root then
-            local lastUsed = utils:getAttr(killer, "AbilityLastUsed")
-            local cached   = vars.cache[killer]
-            vars.cache[killer] = lastUsed
+        local lastUsed = utils:getAttr(killer, "AbilityLastUsed")
+        local cached   = vars.cache[killer]
+        vars.cache[killer] = lastUsed
 
-            if cached ~= nil and lastUsed ~= cached then
-                local abilitiesUsed = utils:getAttr(killer, "AbilitiesUsed")
-                local abilitiesCached = vars.cache[killer.Name .. "_ab"]
-                vars.cache[killer.Name .. "_ab"] = abilitiesUsed
+        if cached ~= nil and lastUsed ~= cached then
+            local abilitiesUsed = utils:getAttr(killer, "AbilitiesUsed")
+            local abilitiesCached = vars.cache[killer.Name .. "_ab"]
+            vars.cache[killer.Name .. "_ab"] = abilitiesUsed
 
-                if abilitiesCached == nil or abilitiesUsed == abilitiesCached then
+            if abilitiesCached == nil or abilitiesUsed == abilitiesCached then
                 local range  = killer:GetAttribute("Invincible") == 1 and Range2 or Range
                 local myPos  = utils:myRoot()
 
                 if myPos and utils:distSq(myPos.Position, root.Position) <= range * range then
+                    if killer:GetAttribute("Invincible") == 1 then
+                        if utils:islookme(root) then
+                            blocked = true
+                            break
+                        end
+                    else
                         blocked = true
                         break
+                    end
+                end
+            end
         end
-        end
-    end
-    end
     end
 
     if blocked then
