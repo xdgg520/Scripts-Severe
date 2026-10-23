@@ -23,6 +23,7 @@ local Range     = cfg.Range     or 14
 local Range2    = cfg.Range2    or 24
 local Delay     = cfg.Delay     or 0
 local ShowRange = cfg.ShowRange or false
+local ShowTarget = cfg.ShowTarget ~= false
 local Range2_Angle_cos = math.cos(math.rad(70))
 
 -- /Vars
@@ -34,7 +35,7 @@ vars.cam        = nil
 
 -- /Utils
 function utils:notify(msg)
-    send_notification(msg, "info")
+    print("[AutoBlock] " .. tostring(msg))
 end
 
 function utils:getRoot(model)
@@ -142,7 +143,7 @@ function utils:drawRange()
             end
         end
 
-        if vars.enabled then
+        if ShowTarget then
             local headPos, onScreen = cam:WorldToScreenPoint(center + Vector3.new(0, 5, 0))
             if onScreen then
                 DrawingImmediate.OutlinedText(
@@ -150,7 +151,7 @@ function utils:drawRange()
                     16,
                     Color3.new(1, 0.2, 0.2),
                     1,
-                    "targee",
+                    "Target",
                     true,
                     "GothamBold"
                 )
