@@ -15,7 +15,7 @@ insts.lp      = services.Players.LocalPlayer
 insts.killers = services.Workspace.Players.Killers
 
 -- /Config
-_G.AutoBlock = _G.AutoBlock or {}
+_G.AutoBlock = type(_G.AutoBlock) == "table" and _G.AutoBlock or {}
 local cfg = _G.AutoBlock
 local ToggleKey = cfg.ToggleKey or "C"
 local BlockKey  = cfg.BlockKey  or 0x51
@@ -29,10 +29,12 @@ local Range2_Angle_cos = math.cos(math.rad(70))
 vars.enabled    = false
 vars.lastC     = false
 vars.cache      = {}
+vars.snap       = {}
+vars.cam        = nil
 
 -- /Utils
 function utils:notify(msg)
-    send_notification(msg, "info")
+    send_notification(msg)
 end
 
 function utils:getRoot(model)
@@ -81,39 +83,87 @@ function utils:islookme(killerRoot)
     return false
 end
 
-function utils:drawRange()
+-- every Instance access lives here, so the render event never namecalls an Instance
+function utils:updateSnapshot()
+    local snap = vars.snap
+    local n = 0
+    vars.cam = services.Workspace.CurrentCamera
+
     for _, killer in ipairs(insts.killers:GetChildren()) do
         local root = self:getRoot(killer)
-
         if root then
-        local isEnraged = killer:GetAttribute("Invincible")
-        local range = isEnraged and Range2 or Range
-        local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
-        local center = root.Position
-        local segs = 24
-        local step = 6.2832 / segs
-        local last = nil
-
-        for i = 0, segs do
-            local ang = i * step
-            local wpos = Vector3.new(center.X + math.cos(ang) * range, center.Y - 2.5, center.Z + math.sin(ang) * range)
-            local p, on = services.Workspace.CurrentCamera:WorldToScreenPoint(wpos)
-            if last and on then
-                DrawingImmediate.Line(last, Vector2.new(p.X, p.Y), color, 0.6, 2, 3)
+            n = n + 1
+            local e = snap[n]
+            if not e then
+                e = {}
+                snap[n] = e
             end
-            last = Vector2.new(p.X, p.Y)
-        end
-
-        local headPos, onScreen = services.Workspace.CurrentCamera:WorldToScreenPoint(center + Vector3.new(0, 5, 0))
-        if onScreen and vars.enabled then
-            DrawingImmediate.OutlinedText(Vector2.new(headPos.X, headPos.Y), 16, Color3.new(1, 0.2, 0.2), 1, "targee", true, "GothamBold")
+            e.model = killer
+            e.root  = root
+            e.pos   = root.Position
+            e.inv   = killer:GetAttribute("Invincible")
         end
     end
+
+    for i = n + 1, #snap do
+        snap[i] = nil
+    end
+end
+
+-- render only does math + DrawingImmediate
+function utils:drawRange()
+    local cam = vars.cam
+    if not cam then return end
+
+    for _, e in ipairs(vars.snap) do
+        local isEnraged = e.inv
+        local range = isEnraged and Range2 or Range
+        local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
+        local center = e.pos
+        local segs = 24
+        local step = 6.2832 / segs
+
+        if ShowRange then
+            local pts = {}
+            for i = 0, segs do
+                local ang = i * step
+                local wpos = Vector3.new(
+                    center.X + math.cos(ang) * range,
+                    center.Y - 2.5,
+                    center.Z + math.sin(ang) * range
+                )
+                local p, on = cam:WorldToScreenPoint(wpos)
+                if on then
+                    pts[#pts + 1] = Vector2.new(p.X, p.Y)
+                end
+            end
+            if #pts > 1 then
+                DrawingImmediate.Polyline(pts, color, 0.6, 2)
+            end
+        end
+
+        if vars.enabled then
+            local headPos, onScreen = cam:WorldToScreenPoint(center + Vector3.new(0, 5, 0))
+            if onScreen then
+                DrawingImmediate.OutlinedText(
+                    Vector2.new(headPos.X, headPos.Y),
+                    16,
+                    Color3.new(1, 0.2, 0.2),
+                    1,
+                    "targee",
+                    true,
+                    "GothamBold"
+                )
+            end
+        end
     end
 end
 
 -- /Connections
 services.RunService.PostModel:Connect(function()
+
+    -- data collection happens here, never inside Render
+    utils:updateSnapshot()
 
     local cDown = false
     for _, key in getpressedkeys() do if key == ToggleKey then cDown = true; break end end
@@ -126,14 +176,14 @@ services.RunService.PostModel:Connect(function()
     vars.lastC = cDown
     if not vars.enabled then return end
 
-    local count = #insts.killers:GetChildren()
-    if count == 0 then return end
+    if #vars.snap == 0 then return end
 
     local blocked = false
+    local myPos = utils:myRoot()
 
-    for _, killer in ipairs(insts.killers:GetChildren()) do
-        local root = utils:getRoot(killer)
-        if not root then break end
+    for _, e in ipairs(vars.snap) do
+        local killer = e.model
+        local root   = e.root
 
         local lastUsed = utils:getAttr(killer, "AbilityLastUsed")
         local cached   = vars.cache[killer]
@@ -145,11 +195,10 @@ services.RunService.PostModel:Connect(function()
             vars.cache[killer.Name .. "_ab"] = abilitiesUsed
 
             if abilitiesCached == nil or abilitiesUsed == abilitiesCached then
-                local range  = killer:GetAttribute("Invincible") == 1 and Range2 or Range
-                local myPos  = utils:myRoot()
+                local range = e.inv == 1 and Range2 or Range
 
                 if myPos and utils:distSq(myPos.Position, root.Position) <= range * range then
-                    if killer:GetAttribute("Invincible") == 1 then
+                    if e.inv == 1 then
                         if utils:islookme(root) then
                             blocked = true
                             break
