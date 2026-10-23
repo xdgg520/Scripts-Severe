@@ -31,15 +31,15 @@ vars.enabled    = false
 vars.lastC     = false
 vars.cache      = {}
 
--- /Killer list (GetChildren is banned inside the render event, so keep a cache)
+-- /Killer list (GetChildren is banned inside the render event, so refresh it outside)
 local killers = insts.killers:GetChildren()
 
-local function refreshKillers()
-    killers = insts.killers:GetChildren()
-end
-
-insts.killers.ChildAdded:Connect(refreshKillers)
-insts.killers.ChildRemoved:Connect(refreshKillers)
+task.spawn(function()
+    while true do
+        task.wait(0.25)
+        killers = insts.killers:GetChildren()
+    end
+end)
 
 -- /Utils
 function utils:getRoot(model)
@@ -143,7 +143,7 @@ end
 -- /Connections
 services.RunService.PostModel:Connect(function()
 
-    refreshKillers()
+    killers = insts.killers:GetChildren()
 
     local cDown = false
     for _, key in getpressedkeys() do if key == ToggleKey then cDown = true; break end end
