@@ -1,20 +1,14 @@
---[[ vt1022 ]]
-
 --!optimize 2
 
--- /Locals
 local services, insts, utils, vars = {}, {}, {}, {}
 
--- /Services
 services.RunService = game:GetService("RunService")
 services.Workspace  = game:GetService("Workspace")
 services.Players    = game:GetService("Players")
 
--- /Instances
 insts.lp      = services.Players.LocalPlayer
 insts.killers = services.Workspace.Players.Killers
 
--- /Config
 _G.AutoBlock = type(_G.AutoBlock) == "table" and _G.AutoBlock or {}
 local cfg = _G.AutoBlock
 local ToggleKey = cfg.ToggleKey or "C"
@@ -26,14 +20,12 @@ local ShowRange = cfg.ShowRange or false
 local ShowTarget = cfg.ShowTarget ~= false
 local Range2_Angle_cos = math.cos(math.rad(70))
 
--- /Vars
 vars.enabled    = false
-vars.lastC     = false
+vars.lastC      = false
 vars.cache      = {}
 vars.snap       = {}
 vars.cam        = nil
 
--- /Killer list + draw snapshot (Instance access is banned inside the render event)
 local killers = insts.killers:GetChildren()
 
 local function refreshDrawData()
@@ -61,7 +53,6 @@ task.spawn(function()
     end
 end)
 
--- temporary diagnostic: prints only if the draw data never got filled
 task.spawn(function()
     task.wait(2)
     if not vars.cam or #vars.snap == 0 then
@@ -69,7 +60,6 @@ task.spawn(function()
     end
 end)
 
--- /Utils
 function utils:getRoot(model)
     if not model then return nil end
     return model:FindFirstChild("HumanoidRootPart")
@@ -120,49 +110,62 @@ function utils:drawRange()
     local cam = vars.cam
     if not cam then return end
 
+    local drawn = 0
     for _, e in ipairs(vars.snap) do
+        if drawn >= 5 then break end
+        drawn = drawn + 1
+
         local isEnraged = e.inv
         local range = isEnraged and Range2 or Range
         local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
         local center = e.pos
 
-            if ShowRange then
-                local segs = 18
-                local step = 6.28318 / segs
-                local last_p = nil
-                for i = 0, segs do
-                    local ang = i * step
-                    local wpos = Vector3.new(
-                        center.X + math.cos(ang) * range,
-                        center.Y - 3,
-                        center.Z + math.sin(ang) * range
-                    )
-                    local p, on = cam:WorldToScreenPoint(wpos)
-                    if last_p and on then
-                        DrawingImmediate.Line(last_p, Vector2.new(p.X, p.Y), color, 1, 1)
-                    end
-                    last_p = Vector2.new(p.X, p.Y)
+        if ShowRange then
+            local segs = 18
+            local step = 6.28318 / segs
+            local pts = {}
+            local ok = true
+            for i = 0, segs do
+                local ang = i * step
+                local wpos = Vector3.new(
+                    center.X + math.cos(ang) * range,
+                    center.Y - 3,
+                    center.Z + math.sin(ang) * range
+                )
+                local p, on = cam:WorldToScreenPoint(wpos)
+                if not on or p.X ~= p.X or p.Y ~= p.Y
+                    or math.abs(p.X) > 20000 or math.abs(p.Y) > 20000 then
+                    ok = false
+                    break
+                end
+                pts[#pts + 1] = Vector2.new(p.X, p.Y)
+            end
+            if ok then
+                for i = 1, #pts - 1 do
+                    DrawingImmediate.Line(pts[i], pts[i + 1], color, 1, 1)
                 end
             end
+        end
 
-            if ShowTarget and vars.enabled then
-                local headPos, onScreen = cam:WorldToScreenPoint(center + Vector3.new(0, 5, 0))
-                if onScreen then
-                    DrawingImmediate.OutlinedText(
-                        Vector2.new(headPos.X, headPos.Y),
-                        18,
-                        Color3.new(1, 0.2, 0.2),
-                        1,
-                        "Target",
-                        true,
-                        "Interum"
-                    )
-                end
+        if ShowTarget and vars.enabled then
+            local headPos, onScreen = cam:WorldToScreenPoint(center + Vector3.new(0, 5, 0))
+            if onScreen
+                and headPos.X == headPos.X and headPos.Y == headPos.Y
+                and math.abs(headPos.X) < 20000 and math.abs(headPos.Y) < 20000 then
+                DrawingImmediate.OutlinedText(
+                    Vector2.new(headPos.X, headPos.Y),
+                    18,
+                    Color3.new(1, 0.2, 0.2),
+                    1,
+                    "Target",
+                    true,
+                    "Interum"
+                )
             end
+        end
     end
 end
 
--- /Connections
 services.RunService.PostModel:Connect(function()
 
     killers = insts.killers:GetChildren()
@@ -225,7 +228,7 @@ services.RunService.PostModel:Connect(function()
 end)
 
 services.RunService.Render:Connect(function()
-    pcall(utils.drawRange, utils)
+    utils:drawRange()
 end)
 
 print("ok")
