@@ -54,8 +54,10 @@ end
 task.spawn(function()
     while true do
         task.wait(0.1)
-        killers = insts.killers:GetChildren()
-        refreshDrawData()
+        pcall(function()
+            killers = insts.killers:GetChildren()
+            refreshDrawData()
+        end)
     end
 end)
 
@@ -117,23 +119,14 @@ function utils:drawRange()
         local center = e.pos
 
             if ShowRange then
-                local segs = 24
-                local step = 6.2832 / segs
-                local pts = {}
-                for i = 0, segs do
-                    local ang = i * step
-                    local wpos = Vector3.new(
-                        center.X + math.cos(ang) * range,
-                        center.Y - 2.5,
-                        center.Z + math.sin(ang) * range
-                    )
-                    local p, on = cam:WorldToScreenPoint(wpos)
-                    if on then
-                        pts[#pts + 1] = Vector2.new(p.X, p.Y)
+                local s, onS = cam:WorldToScreenPoint(center)
+                local edge, onE = cam:WorldToScreenPoint(center + Vector3.new(range, 0, 0))
+                if onS and onE then
+                    local dx, dy = edge.X - s.X, edge.Y - s.Y
+                    local radius = math.sqrt(dx * dx + dy * dy)
+                    if radius == radius and radius > 1 and radius < 100000 then
+                        DrawingImmediate.Circle(Vector2.new(s.X, s.Y), radius, color, 0.6, 2)
                     end
-                end
-                if #pts > 1 then
-                    DrawingImmediate.Polyline(pts, color, 0.6, 2)
                 end
             end
 
@@ -217,7 +210,7 @@ services.RunService.PostModel:Connect(function()
 end)
 
 services.RunService.Render:Connect(function()
-    utils:drawRange()
+    pcall(utils.drawRange, utils)
 end)
 
 print("ok")
