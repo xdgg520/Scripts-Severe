@@ -30,14 +30,32 @@ local Range2_Angle_cos = math.cos(math.rad(70))
 vars.enabled    = false
 vars.lastC     = false
 vars.cache      = {}
+vars.snap       = {}
+vars.cam        = nil
 
--- /Killer list (GetChildren is banned inside the render event, so refresh it outside)
+-- /Killer list + draw snapshot (Instance access is banned inside the render event)
 local killers = insts.killers:GetChildren()
+
+local function refreshDrawData()
+    vars.cam = services.Workspace.CurrentCamera
+    local snap = {}
+    for _, killer in ipairs(insts.killers:GetChildren()) do
+        local root = utils:getRoot(killer)
+        if root then
+            snap[#snap + 1] = {
+                pos = root.Position,
+                inv = killer:GetAttribute("Invincible"),
+            }
+        end
+    end
+    vars.snap = snap
+end
 
 task.spawn(function()
     while true do
-        task.wait(0.25)
+        task.wait(0.1)
         killers = insts.killers:GetChildren()
+        refreshDrawData()
     end
 end)
 
@@ -89,17 +107,14 @@ function utils:islookme(killerRoot)
 end
 
 function utils:drawRange()
-    local cam = services.Workspace.CurrentCamera
+    local cam = vars.cam
     if not cam then return end
 
-    for _, killer in ipairs(killers) do
-        local root = self:getRoot(killer)
-
-        if root then
-            local isEnraged = killer:GetAttribute("Invincible")
-            local range = isEnraged and Range2 or Range
-            local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
-            local center = root.Position
+    for _, e in ipairs(vars.snap) do
+        local isEnraged = e.inv
+        local range = isEnraged and Range2 or Range
+        local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
+        local center = e.pos
 
             if ShowRange then
                 local segs = 24
@@ -136,7 +151,6 @@ function utils:drawRange()
                     )
                 end
             end
-        end
     end
 end
 
