@@ -229,4 +229,4 @@ services.RunService.Render:Connect(function()
     utils:drawRange()
 end)
 
-utils:notify("ok")
+utils:notify("1234")
