@@ -34,7 +34,7 @@ vars.cam        = nil
 
 -- /Utils
 function utils:notify(msg)
-    send_notification(msg, "info")
+    send_notification(msg)
 end
 
 function utils:getRoot(model)
@@ -229,4 +229,4 @@ services.RunService.Render:Connect(function()
     utils:drawRange()
 end)
 
-utils:notify("1234")
+utils:notify("ok v3")
