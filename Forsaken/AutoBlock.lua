@@ -42,10 +42,6 @@ insts.killers.ChildAdded:Connect(refreshKillers)
 insts.killers.ChildRemoved:Connect(refreshKillers)
 
 -- /Utils
-function utils:notify(msg)
-    print("[AutoBlock] " .. tostring(msg))
-end
-
 function utils:getRoot(model)
     if not model then return nil end
     return model:FindFirstChild("HumanoidRootPart")
@@ -136,7 +132,7 @@ function utils:drawRange()
                         1,
                         "Target",
                         true,
-                        "GothamBold"
+                        "Tamzen"
                     )
                 end
             end
@@ -154,7 +150,6 @@ services.RunService.PostModel:Connect(function()
 
     if cDown and not vars.lastC then
         vars.enabled = not vars.enabled
-        utils:notify(vars.enabled and "on" or "off")
         if not vars.enabled then vars.cache = {} end
     end
     vars.lastC = cDown
@@ -200,11 +195,9 @@ services.RunService.PostModel:Connect(function()
         if Delay > 0 then
             task.delay(Delay, function()
                 utils:tap(BlockKey)
-                utils:notify("block!")
             end)
         else
             utils:tap(BlockKey)
-            utils:notify("block!")
         end
     end
 end)
@@ -213,4 +206,4 @@ services.RunService.Render:Connect(function()
     utils:drawRange()
 end)
 
-utils:notify("ok v4")
+print("ok")
