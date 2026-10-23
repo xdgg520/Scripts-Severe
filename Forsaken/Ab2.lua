@@ -127,21 +127,21 @@ function utils:drawRange()
         local center = e.pos
 
             if ShowRange then
-                local segs = 24
-                local step = 6.2832 / segs
-                local last = nil
+                local segs = 18
+                local step = 6.28318 / segs
+                local last_p = nil
                 for i = 0, segs do
                     local ang = i * step
                     local wpos = Vector3.new(
                         center.X + math.cos(ang) * range,
-                        center.Y - 2.5,
+                        center.Y - 3,
                         center.Z + math.sin(ang) * range
                     )
                     local p, on = cam:WorldToScreenPoint(wpos)
-                    if last and on then
-                        DrawingImmediate.Line(last, Vector2.new(p.X, p.Y), color, 0.6, 2, 3)
+                    if last_p and on then
+                        DrawingImmediate.Line(last_p, Vector2.new(p.X, p.Y), color, 1, 1)
                     end
-                    last = Vector2.new(p.X, p.Y)
+                    last_p = Vector2.new(p.X, p.Y)
                 end
             end
 
@@ -150,12 +150,12 @@ function utils:drawRange()
                 if onScreen then
                     DrawingImmediate.OutlinedText(
                         Vector2.new(headPos.X, headPos.Y),
-                        16,
+                        18,
                         Color3.new(1, 0.2, 0.2),
                         1,
                         "Target",
                         true,
-                        "Tamzen"
+                        "Interum"
                     )
                 end
             end
