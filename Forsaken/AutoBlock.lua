@@ -34,7 +34,7 @@ vars.cam        = nil
 
 -- /Utils
 function utils:notify(msg)
-    send_notification(msg)
+    send_notification(msg, "info")
 end
 
 function utils:getRoot(model)
