@@ -137,7 +137,7 @@ function utils:drawRange()
                 end
             end
 
-            if ShowTarget then
+            if ShowTarget and vars.enabled then
                 local headPos, onScreen = cam:WorldToScreenPoint(center + Vector3.new(0, 5, 0))
                 if onScreen then
                     DrawingImmediate.OutlinedText(
