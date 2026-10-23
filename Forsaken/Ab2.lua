@@ -158,30 +158,30 @@ function utils:drawRange()
             local center = e.pos
 
             if ShowRange then
-                local segs = 18
-                local step = 6.28318 / segs
-                local pts = {}
-                local ok = true
-                for i = 0, segs do
-                    local ang = i * step
-                    local wpos = Vector3.new(
-                        center.X + math.cos(ang) * range,
-                        center.Y - 3,
-                        center.Z + math.sin(ang) * range
-                    )
-                    local p, on = cam:WorldToScreenPoint(wpos)
-                    if not on or p.X ~= p.X or p.Y ~= p.Y
-                        or math.abs(p.X) > 20000 or math.abs(p.Y) > 20000 then
-                        ok = false
-                        break
+                    local segs = 18
+                    local step = 6.28318 / segs
+                    local pts = {}
+                    local ok = true
+                    for i = 0, segs do
+                        local ang = i * step
+                        local wpos = Vector3.new(
+                            center.X + math.cos(ang) * range,
+                            center.Y - 3,
+                            center.Z + math.sin(ang) * range
+                        )
+                        local p, on = cam:WorldToScreenPoint(wpos)
+                        if not on or p.X ~= p.X or p.Y ~= p.Y
+                            or math.abs(p.X) > 20000 or math.abs(p.Y) > 20000 then
+                            ok = false
+                            break
+                        end
+                        pts[#pts + 1] = Vector2.new(p.X, p.Y)
                     end
-                    pts[#pts + 1] = Vector2.new(p.X, p.Y)
-                end
-                if ok then
-                    for i = 1, #pts - 1 do
-                        DrawingImmediate.Line(pts[i], pts[i + 1], color, 1, 1)
+                    if ok then
+                        for i = 1, #pts - 1 do
+                            DrawingImmediate.Line(pts[i], pts[i + 1], color, 1, 1)
+                        end
                     end
-                end
             end
 
             if ShowTarget and vars.enabled then
