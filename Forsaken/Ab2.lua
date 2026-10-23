@@ -30,13 +30,18 @@ local killers = insts.killers:GetChildren()
 
 local function refreshDrawData()
     vars.cam = services.Workspace.CurrentCamera
+    local myChar = insts.lp.Character
+    local myRoot = myChar and utils:getRoot(myChar)
+    local myPos = myRoot and myRoot.Position
     local snap = {}
     for _, killer in ipairs(insts.killers:GetChildren()) do
         local root = utils:getRoot(killer)
         if root then
+            local pos = root.Position
             snap[#snap + 1] = {
-                pos = root.Position,
+                pos = pos,
                 inv = killer:GetAttribute("Invincible"),
+                dist = myPos and (pos - myPos).Magnitude or 0,
             }
         end
     end
@@ -112,55 +117,57 @@ function utils:drawRange()
 
     local drawn = 0
     for _, e in ipairs(vars.snap) do
-        if drawn >= 5 then break end
-        drawn = drawn + 1
+        if drawn >= 3 then break end
+        if e.dist <= 60 then
+            drawn = drawn + 1
 
-        local isEnraged = e.inv
-        local range = isEnraged and Range2 or Range
-        local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
-        local center = e.pos
+            local isEnraged = e.inv
+            local range = isEnraged and Range2 or Range
+            local color = isEnraged and Color3.new(1, 0.86, 0) or Color3.new(0, 1, 0.3)
+            local center = e.pos
 
-        if ShowRange then
-            local segs = 18
-            local step = 6.28318 / segs
-            local pts = {}
-            local ok = true
-            for i = 0, segs do
-                local ang = i * step
-                local wpos = Vector3.new(
-                    center.X + math.cos(ang) * range,
-                    center.Y - 3,
-                    center.Z + math.sin(ang) * range
-                )
-                local p, on = cam:WorldToScreenPoint(wpos)
-                if not on or p.X ~= p.X or p.Y ~= p.Y
-                    or math.abs(p.X) > 20000 or math.abs(p.Y) > 20000 then
-                    ok = false
-                    break
+            if ShowRange then
+                local segs = 18
+                local step = 6.28318 / segs
+                local pts = {}
+                local ok = true
+                for i = 0, segs do
+                    local ang = i * step
+                    local wpos = Vector3.new(
+                        center.X + math.cos(ang) * range,
+                        center.Y - 3,
+                        center.Z + math.sin(ang) * range
+                    )
+                    local p, on = cam:WorldToScreenPoint(wpos)
+                    if not on or p.X ~= p.X or p.Y ~= p.Y
+                        or math.abs(p.X) > 20000 or math.abs(p.Y) > 20000 then
+                        ok = false
+                        break
+                    end
+                    pts[#pts + 1] = Vector2.new(p.X, p.Y)
                 end
-                pts[#pts + 1] = Vector2.new(p.X, p.Y)
-            end
-            if ok then
-                for i = 1, #pts - 1 do
-                    DrawingImmediate.Line(pts[i], pts[i + 1], color, 1, 1)
+                if ok then
+                    for i = 1, #pts - 1 do
+                        DrawingImmediate.Line(pts[i], pts[i + 1], color, 1, 1)
+                    end
                 end
             end
-        end
 
-        if ShowTarget and vars.enabled then
-            local headPos, onScreen = cam:WorldToScreenPoint(center + Vector3.new(0, 5, 0))
-            if onScreen
-                and headPos.X == headPos.X and headPos.Y == headPos.Y
-                and math.abs(headPos.X) < 20000 and math.abs(headPos.Y) < 20000 then
-                DrawingImmediate.OutlinedText(
-                    Vector2.new(headPos.X, headPos.Y),
-                    18,
-                    Color3.new(1, 0.2, 0.2),
-                    1,
-                    "Target",
-                    true,
-                    "Interum"
-                )
+            if ShowTarget and vars.enabled then
+                local headPos, onScreen = cam:WorldToScreenPoint(center + Vector3.new(0, 5, 0))
+                if onScreen
+                    and headPos.X == headPos.X and headPos.Y == headPos.Y
+                    and math.abs(headPos.X) < 20000 and math.abs(headPos.Y) < 20000 then
+                    DrawingImmediate.OutlinedText(
+                        Vector2.new(headPos.X, headPos.Y),
+                        18,
+                        Color3.new(1, 0.2, 0.2),
+                        1,
+                        "Target",
+                        true,
+                        "Interum"
+                    )
+                end
             end
         end
     end
