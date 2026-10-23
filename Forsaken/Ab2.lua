@@ -25,6 +25,8 @@ vars.lastC      = false
 vars.cache      = {}
 vars.snap       = {}
 vars.cam        = nil
+vars.tapPending = false
+vars.lastTap    = 0
 
 local killers = insts.killers:GetChildren()
 
@@ -38,10 +40,15 @@ local function refreshDrawData()
         local root = utils:getRoot(killer)
         if root then
             local pos = root.Position
+            local dist = 0
+            if myPos then
+                local dx, dy, dz = pos.X - myPos.X, pos.Y - myPos.Y, pos.Z - myPos.Z
+                dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+            end
             snap[#snap + 1] = {
                 pos = pos,
                 inv = killer:GetAttribute("Invincible"),
-                dist = myPos and (pos - myPos).Magnitude or 0,
+                dist = dist,
             }
         end
     end
@@ -49,19 +56,31 @@ local function refreshDrawData()
 end
 
 task.spawn(function()
+    local printed = false
     while true do
         task.wait(0.1)
-        pcall(function()
+        local ok, err = pcall(function()
             killers = insts.killers:GetChildren()
             refreshDrawData()
         end)
+        if not ok and not printed then
+            printed = true
+            print("dbg refresh err: " .. tostring(err))
+        end
     end
 end)
 
 task.spawn(function()
-    task.wait(2)
-    if not vars.cam or #vars.snap == 0 then
-        print("dbg cam=" .. tostring(vars.cam ~= nil) .. " snap=" .. tostring(#vars.snap) .. " killers=" .. tostring(#killers))
+    task.wait(2.5)
+    if #vars.snap == 0 then
+        local list = insts.killers:GetChildren()
+        print("dbg snap=0 killers=" .. #list .. " cam=" .. tostring(vars.cam ~= nil))
+        local k = list[1]
+        if k then
+            local names = {}
+            for _, c in ipairs(k:GetChildren()) do names[#names + 1] = c.Name end
+            print("dbg killer=" .. k.Name .. " class=" .. k.ClassName .. " children=" .. table.concat(names, ","))
+        end
     end
 end)
 
@@ -100,14 +119,26 @@ end
 function utils:islookme(killerRoot)
     local myPos = self:myRoot()
     if not myPos or not killerRoot then return false end
-    local toMe = (myPos.Position - killerRoot.Position) * Vector3.new(1, 0, 1)
-    if toMe.Magnitude < 0.1 then return true end
-    if killerRoot.CFrame.LookVector:Dot(toMe.Unit) >= Range2_Angle_cos then return true end
+
+    local my = myPos.Position
+    local kp = killerRoot.Position
+    local dx, dz = my.X - kp.X, my.Z - kp.Z
+    local m = math.sqrt(dx * dx + dz * dz)
+    if m < 0.1 then return true end
+    local nx, nz = dx / m, dz / m
+
+    local look = killerRoot.CFrame.LookVector
+    if look.X * nx + look.Z * nz >= Range2_Angle_cos then return true end
+
     local vel = killerRoot.AssemblyLinearVelocity or killerRoot.Velocity
     if vel then
-        local flat = Vector3.new(vel.X, 0, vel.Z)
-        if flat.Magnitude >= 0.1 and flat.Unit:Dot(toMe.Unit) >= Range2_Angle_cos then return true end
+        local vx, vz = vel.X, vel.Z
+        local vm = math.sqrt(vx * vx + vz * vz)
+        if vm >= 0.1 and (vx / vm) * nx + (vz / vm) * nz >= Range2_Angle_cos then
+            return true
+        end
     end
+
     return false
 end
 
@@ -224,12 +255,23 @@ services.RunService.PostModel:Connect(function()
     end
 
     if blocked then
+        local now = tick()
         if Delay > 0 then
-            task.delay(Delay, function()
-                utils:tap(BlockKey)
-            end)
+            if not vars.tapPending then
+                vars.tapPending = true
+                task.delay(Delay, function()
+                    vars.tapPending = false
+                    if tick() - vars.lastTap >= 0.05 then
+                        vars.lastTap = tick()
+                        utils:tap(BlockKey)
+                    end
+                end)
+            end
         else
-            utils:tap(BlockKey)
+            if now - vars.lastTap >= 0.05 then
+                vars.lastTap = now
+                utils:tap(BlockKey)
+            end
         end
     end
 end)
