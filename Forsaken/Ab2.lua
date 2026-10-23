@@ -119,14 +119,21 @@ function utils:drawRange()
         local center = e.pos
 
             if ShowRange then
-                local s, onS = cam:WorldToScreenPoint(center)
-                local edge, onE = cam:WorldToScreenPoint(center + Vector3.new(range, 0, 0))
-                if onS and onE then
-                    local dx, dy = edge.X - s.X, edge.Y - s.Y
-                    local radius = math.sqrt(dx * dx + dy * dy)
-                    if radius == radius and radius > 1 and radius < 100000 then
-                        DrawingImmediate.Circle(Vector2.new(s.X, s.Y), radius, color, 0.6, 2)
+                local segs = 24
+                local step = 6.2832 / segs
+                local last = nil
+                for i = 0, segs do
+                    local ang = i * step
+                    local wpos = Vector3.new(
+                        center.X + math.cos(ang) * range,
+                        center.Y - 2.5,
+                        center.Z + math.sin(ang) * range
+                    )
+                    local p, on = cam:WorldToScreenPoint(wpos)
+                    if last and on then
+                        DrawingImmediate.Line(last, Vector2.new(p.X, p.Y), color, 0.6, 2, 3)
                     end
+                    last = Vector2.new(p.X, p.Y)
                 end
             end
 
