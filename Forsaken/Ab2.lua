@@ -61,6 +61,14 @@ task.spawn(function()
     end
 end)
 
+-- temporary diagnostic: prints only if the draw data never got filled
+task.spawn(function()
+    task.wait(2)
+    if not vars.cam or #vars.snap == 0 then
+        print("dbg cam=" .. tostring(vars.cam ~= nil) .. " snap=" .. tostring(#vars.snap) .. " killers=" .. tostring(#killers))
+    end
+end)
+
 -- /Utils
 function utils:getRoot(model)
     if not model then return nil end
